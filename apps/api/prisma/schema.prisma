@@ -1,0 +1,193 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id                String             @id @default(cuid())
+  email             String             @unique
+  password          String
+  name              String
+  plan              Plan               @default(FREE)
+  isEmailVerified   Boolean            @default(false)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+
+  profile           FreelancerProfile?
+  clients           Client[]
+  projects          Project[]
+  invoices          Invoice[]
+  expenses          Expense[]
+  refreshTokens     RefreshToken[]
+}
+
+model RefreshToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+}
+
+model FreelancerProfile {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  businessName String?
+  businessType BusinessType @default(INDIVIDUAL)
+  phone        String?
+  gstin        String?
+  pan          String?
+  address      String?
+  city         String?
+  state        String?
+  pincode      String?
+  logoUrl      String?
+  bankName     String?
+  accountNumber String?
+  ifscCode     String?
+  upiId        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Client {
+  id           String    @id @default(cuid())
+  freelancerId String
+  freelancer   User      @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  name         String
+  email        String?
+  phone        String?
+  company      String?
+  gstin        String?
+  address      String?
+  city         String?
+  state        String?
+  pincode      String?
+  currency     String    @default("INR")
+  notes        String?
+  isArchived   Boolean   @default(false)
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
+
+  projects     Project[]
+  invoices     Invoice[]
+}
+
+model Project {
+  id           String        @id @default(cuid())
+  freelancerId String
+  freelancer   User          @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  clientId     String
+  client       Client        @relation(fields: [clientId], references: [id])
+  title        String
+  description  String?
+  status       ProjectStatus @default(LEAD)
+  budgetType   BudgetType    @default(FIXED)
+  budget       Float?
+  currency     String        @default("INR")
+  startDate    DateTime?
+  deadline     DateTime?
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  invoices     Invoice[]
+  expenses     Expense[]
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  freelancerId   String
+  freelancer     User          @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  clientId       String
+  client         Client        @relation(fields: [clientId], references: [id])
+  projectId      String?
+  project        Project?      @relation(fields: [projectId], references: [id])
+  invoiceNumber  String
+  status         InvoiceStatus @default(DRAFT)
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime
+  lineItems      Json
+  subtotal       Int           // stored in paise (never float for money)
+  discountAmount Int           @default(0)
+  gstRate        Float         @default(0)
+  cgst           Int           @default(0)
+  sgst           Int           @default(0)
+  igst           Int           @default(0)
+  total          Int
+  notes          String?
+  terms          String?
+  paymentLink    String?
+  paidAt         DateTime?
+  sentAt         DateTime?
+  currency       String        @default("INR")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@unique([freelancerId, invoiceNumber])
+}
+
+model Expense {
+  id            String          @id @default(cuid())
+  freelancerId  String
+  freelancer    User            @relation(fields: [freelancerId], references: [id], onDelete: Cascade)
+  projectId     String?
+  project       Project?        @relation(fields: [projectId], references: [id])
+  title         String
+  amount        Int             // in paise
+  currency      String          @default("INR")
+  category      ExpenseCategory
+  receiptUrl    String?
+  date          DateTime
+  taxDeductible Boolean         @default(false)
+  notes         String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+}
+
+enum Plan {
+  FREE
+  PRO
+  BUSINESS
+}
+
+enum BusinessType {
+  INDIVIDUAL
+  COMPANY
+}
+
+enum ProjectStatus {
+  LEAD
+  PROPOSAL
+  ACTIVE
+  REVIEW
+  COMPLETED
+  ARCHIVED
+}
+
+enum BudgetType {
+  FIXED
+  HOURLY
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PAID
+  OVERDUE
+}
+
+enum ExpenseCategory {
+  SOFTWARE
+  TRAVEL
+  OFFICE
+  HARDWARE
+  MARKETING
+  FOOD
+  OTHER
+}
