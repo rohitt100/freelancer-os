@@ -3,6 +3,8 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "build": "pnpm --filter api build",
+    "start": "pnpm --filter api start:prod",
     "dev:api": "pnpm --filter api dev",
     "dev:mobile": "pnpm --filter mobile start",
     "build:api": "pnpm --filter api build",
